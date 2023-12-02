@@ -47,7 +47,7 @@ csrspmm_seqreduce_nnzbalance_kernel(const int nr, const int nv, const int nc,
 
   int Nnzdim_thread = blockDim.y * gridDim.x;
   int NE_PER_THREAD = DIV_UP(nnz, Nnzdim_thread);
-  int eid = (blockIdx.x * blockDim.y + threadIdx.y) * NE_PER_THREAD;
+  int eid = (blockIdx.x * blockDim.y + threadIdx.y) * NE_PER_THREAD; // element id
   int v_id = (blockIdx.y * blockDim.x) + threadIdx.x;
   int col = 0;
   float val = 0.0;
@@ -60,13 +60,13 @@ csrspmm_seqreduce_nnzbalance_kernel(const int nr, const int nv, const int nc,
         if (eid >= nnz)
           break;
         if (ii < step) {
-          col = __ldg(colIdx + eid) * nv;
+          col = __ldg(colIdx + eid) * nv; // eid is the column idx for A, and row idx for B.
           val += __guard_load_default_one<float>(values, eid) *
                  __ldg(dnInput + col + v_id);
 
           eid++;
         } else {
-          atomicAdd(&dnOutput[row * nv + v_id], val);
+          atomicAdd(&dnOutput[row * nv + v_id], val); // nv is N, v_id is the column id
 
           row = binary_search_segment_number<int>(rowPtr, nr, nnz, eid);
           step = __ldg(rowPtr + row + 1) - eid;

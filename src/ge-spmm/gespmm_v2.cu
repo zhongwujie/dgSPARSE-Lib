@@ -252,7 +252,7 @@ __global__ void csrSpmvMrgVector(int nr, int nc, int nnz_, const int *csrRowPtr,
     nnz = csrRowPtr[nr]; //!!!temporal hack
 
   int tid = NT * blockIdx.x + threadIdx.x;
-  int lane_id = tid & (32 - 1);
+  int lane_id = tid & (32 - 1); // id in a warp
   int stride = NT * gridDim.x;
   int col = 0;
   float val = 0.0;
@@ -566,6 +566,7 @@ __global__ void csrSpmmMrgScalar(int nr, int nc, int nv, int nnz_,
 // internal dispatch, consider nv<=32
 
 // todo(guyue): div-up
+// nr is nrow of A, nc is ncol of A, and nv is N.
 void cuda_csr_spmm(int algo_code, int layout_code, int nr, int nc, int nv,
                    int nnz, int *_csrRowPtr, int *_csrCol, float *_csrVal,
                    float *_vin, float *_vout) {

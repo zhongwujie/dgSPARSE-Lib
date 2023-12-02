@@ -15,7 +15,7 @@ __global__ void csrspmm_parreduce_rowbalance_kernel(
     float C[]) {
   constexpr int CoarsenFactor = sizeof(access_t) / sizeof(float);
 
-  int lane_id = (threadIdx.x & (32 - 1));
+  int lane_id = (threadIdx.x & (32 - 1)); // The id in a warp
   int stride = gridDim.x * blockDim.y;
   int row = blockIdx.x * blockDim.y + threadIdx.y;
 

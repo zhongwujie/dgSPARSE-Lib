@@ -12,8 +12,8 @@ __global__ void csrspmm_non_transpose_parreduce_rowbalance_kernel(
   // RFC: Implementing Sparse matrix-vector produce on throughput-oriented
   // processors, SC2009
 
-  int lane_id = (threadIdx.x & (32 - 1));
-  int stride = gridDim.x * blockDim.y;
+  int lane_id = (threadIdx.x & (32 - 1)); // The id in a warp
+  int stride = gridDim.x * blockDim.y; // nrows
   int row = blockIdx.x * blockDim.y + threadIdx.y;
 
   // get the dense column offset
@@ -125,10 +125,10 @@ __global__ void csrspmm_non_transpose_parreduce_nnzbalance_kernel(
   if (nnz < 0)
     nnz = csr_indptr[M];
 
-  int lane_id = (threadIdx.x & (32 - 1));
+  int lane_id = (threadIdx.x & (32 - 1)); // The id in a warp
   int Nnzdim_warp_id = blockIdx.x * blockDim.y + threadIdx.y;
   int nz_start = Nnzdim_warp_id * 32;
-  int stride = gridDim.x * (blockDim.y * 32);
+  int stride = gridDim.x * (blockDim.y * 32); // The number of nnz
 
   // get the dense column offset
   int col_offset = blockIdx.y * CoarsenFactor;
@@ -360,9 +360,10 @@ __global__ void csrspmm_non_transpose_seqreduce_nnzbalance_kernel(
     nnz = csr_indptr[M];
 
   int Nnzdim_thread = blockDim.x * gridDim.x;
-  int NE_PER_THREAD = DIV_UP(nnz, Nnzdim_thread);
-  int eid = (blockIdx.x * blockDim.x + threadIdx.x) * NE_PER_THREAD;
-
+  int NE_PER_THREAD = DIV_UP(nnz, Nnzdim_thread); // calculate the number of nnz each thread should handle.
+  // eid is the element id
+  int eid = (blockIdx.x * blockDim.x + threadIdx.x) * NE_PER_THREAD; // get the starting index of nnz the thread needs to handle.
+  
   // get the dense column offset
   int col_offset = blockIdx.y * CoarsenFactor;
   int ldB = K;
@@ -400,10 +401,10 @@ __global__ void csrspmm_non_transpose_seqreduce_nnzbalance_kernel(
         for (int i = 0; i < CoarsenFactor; i++) {
           c[i] += v * B_panels[i][k];
         }
-      } else {
+      } else { // the thread needs to calculate more the one row.
 #pragma unroll
         for (int i = 0; i < CoarsenFactor; i++) {
-          atomicAdd(C_panels[i] + row, c[i]);
+          atomicAdd(C_panels[i] + row, c[i]); // store the original row results?
         }
 
         row = binary_search_segment_number<int>(csr_indptr, M, nnz, eid);
