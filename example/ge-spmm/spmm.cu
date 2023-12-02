@@ -19,41 +19,30 @@
 #include "../util/sp_util.hpp"        // read_mtx
 
 gespmmAlg_t GetAlgName(std::string name){
-  gespmmAlg_t alg;
-  switch (name) {
-    case "SEQREDUCE_ROWBALANCE":
+  gespmmAlg_t alg = GESPMM_ALG_DEFAULT;
+
+  if (name == "SEQREDUCE_ROWBALANCE") {
       alg = GESPMM_ALG_SEQREDUCE_ROWBALANCE;
-      break;
-    case "PARREDUCE_ROWBALANCE":
+  } else if (name == "PARREDUCE_ROWBALANCE") {
       alg = GESPMM_ALG_PARREDUCE_ROWBALANCE;
-      break;
-    case "SEQREDUCE_NNZBALANCE":
+  } else if (name == "SEQREDUCE_NNZBALANCE") {
       alg = GESPMM_ALG_SEQREDUCE_NNZBALANCE;
-      break;
-    case "PARREDUCE_NNZBALANCE":
+  } else if (name == "PARREDUCE_NNZBALANCE") {
       alg = GESPMM_ALG_PARREDUCE_NNZBALANCE;
-      break;
-    case "SEQREDUCE_ROWBALANCE_NON_TRANSPOSE":
+  } else if (name == "SEQREDUCE_ROWBALANCE_NON_TRANSPOSE") {
       alg = GESPMM_ALG_SEQREDUCE_ROWBALANCE_NON_TRANSPOSE;
-      break;
-    case "PARREDUCE_ROWBALANCE_NON_TRANSPOSE":
+  } else if (name == "PARREDUCE_ROWBALANCE_NON_TRANSPOSE") {
       alg = GESPMM_ALG_PARREDUCE_ROWBALANCE_NON_TRANSPOSE;
-      break;
-    case "SEQREDUCE_NNZBALANCE_NON_TRANSPOSE":
+  } else if (name == "SEQREDUCE_NNZBALANCE_NON_TRANSPOSE") {
       alg = GESPMM_ALG_SEQREDUCE_NNZBALANCE_NON_TRANSPOSE;
-      break;
-    case "PARREDUCE_NNZBALANCE_NON_TRANSPOSE":
+  } else if (name == "PARREDUCE_NNZBALANCE_NON_TRANSPOSE") {
       alg = GESPMM_ALG_PARREDUCE_NNZBALANCE_NON_TRANSPOSE;
-      break;
-    case "ROWCACHING_ROWBALANCE":
+  } else if (name == "ROWCACHING_ROWBALANCE") {
       alg = GESPMM_ALG_ROWCACHING_ROWBALANCE;
-      break;
-    case "ROWCACHING_NNZBALANCE":
+  } else if (name == "ROWCACHING_NNZBALANCE") {
       alg = GESPMM_ALG_ROWCACHING_NNZBALANCE;
-      break;
-    default:
-      break;
   }
+
   return alg;
 } 
 
@@ -95,11 +84,11 @@ int main(int argc, const char **argv) {
   bool cusparse_bit = false;
   std::string alg_name = "";
   if (argc > 3){
-    alg_name = argv[3];
+    alg_name.assign(argv[3]);
     if(alg_name == "CUSPARSE")  cusparse_bit = true;
     else alg = GetAlgName(alg_name);
   }
-  else alg = GESPMM_ALG_SEQREDUCE_ROWBALANCE;
+  else alg = GESPMM_ALG_DEFAULT;
 
   float *B_h = NULL, *C_h = NULL, *csr_values_h = NULL, *C_ref = NULL;
   float *B_d = NULL, *C_d = NULL, *csr_values_d = NULL;
@@ -218,6 +207,15 @@ int main(int argc, const char **argv) {
             "(nnz=%d) \n Time %f (ms), Throughput %f (gflops).\n",
             M, K, K, N, (float)nnz / M / K, nnz, kernel_dur_msecs, gflops);
     }
+    
+    if (workspace) CUDA_CHECK(cudaFree(workspace));
+
+    // destroy matrix/vector descriptors
+    CUSPARSE_CHECK(cusparseDestroyDnMat(dnMatInputDescr));
+    CUSPARSE_CHECK(cusparseDestroyDnMat(dnMatOutputDescr));
+    CUSPARSE_CHECK(cusparseDestroySpMat(csrDescr));
+    CUSPARSE_CHECK(cusparseDestroy(handle));
+
   }
   else{
     
@@ -263,8 +261,8 @@ int main(int argc, const char **argv) {
       float gflops = MFlop_count / kernel_dur_msecs;
 
       printf("[GE-SpMM][Alg: %s] Report: spmm A(%d x %d) * B(%d x %d) sparsity "
-              "%f (nnz=%d) \n Time %f (ms), Throughput %f (gflops).\n",
-              alg_name, M, K, K, N, (float)nnz / M / K, nnz, kernel_dur_msecs,
+              "%f (nnz=%d) Time %f (ms), Throughput %f (gflops).\n",
+              alg_name.c_str(), M, K, K, N, (float)nnz / M / K, nnz, kernel_dur_msecs,
               gflops);
     }
   }
@@ -289,13 +287,6 @@ int main(int argc, const char **argv) {
     CUDA_CHECK(cudaFree(csr_indptr_d));
   if (csr_indices_d)
     CUDA_CHECK(cudaFree(csr_indices_d));
-  if (workspace)
-    CUDA_CHECK(cudaFree(workspace));
 
-  // destroy matrix/vector descriptors
-  CUSPARSE_CHECK(cusparseDestroyDnMat(dnMatInputDescr));
-  CUSPARSE_CHECK(cusparseDestroyDnMat(dnMatOutputDescr));
-  CUSPARSE_CHECK(cusparseDestroySpMat(csrDescr));
-  CUSPARSE_CHECK(cusparseDestroy(handle));
   return EXIT_SUCCESS;
 }

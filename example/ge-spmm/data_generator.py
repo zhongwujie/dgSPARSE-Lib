@@ -41,11 +41,14 @@ class BalanceGenerator:
     std_ratio = np.arange(0.01, 0.11, 0.01) # coefficient of variation
     std_devs = N * sparsity * std_ratio
     std_devs = list(std_devs.astype(int))
-    if os.path.exists('output/balance'):
-      shutil.rmtree('output/balance')
-    os.mkdir('output/balance')
-    for std_dev in std_devs:
-      mtx_path = 'output/balance/std_' + str(std_dev) + '.mtx'
+    out_folder = f"../benchmark/input/balance/sp{sparsity:.2f}"
+    if os.path.exists(out_folder):
+      shutil.rmtree(out_folder)
+    os.makedirs(out_folder)
+    for i in range(len(std_ratio)):
+      std_dev = std_devs[i]
+      cv = std_ratio[i]
+      mtx_path = f"{out_folder}/std_{cv:.2f}.mtx"
       self.generate_mtx(M, N, nnz, std_dev, mtx_path)
 
 def run():
