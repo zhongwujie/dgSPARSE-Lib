@@ -41,10 +41,20 @@ gespmmAlg_t GetAlgName(std::string name){
       alg = GESPMM_ALG_ROWCACHING_ROWBALANCE;
   } else if (name == "ROWCACHING_NNZBALANCE") {
       alg = GESPMM_ALG_ROWCACHING_NNZBALANCE;
+  } else {
+    printf("[Error] No matching algorithms. Use the default one");
+    exit(1);
   }
-
   return alg;
-} 
+}
+
+bool CheckTranspose(std::string name){
+  bool transpose = true;
+  if(name == "SEQREDUCE_ROWBALANCE_NON_TRANSPOSE" || name == "PARREDUCE_ROWBALANCE_NON_TRANSPOSE"
+    || name == "SEQREDUCE_NNZBALANCE_NON_TRANSPOSE" || name == "PARREDUCE_NNZBALANCE_NON_TRANSPOSE")
+    transpose = false;
+  return transpose;
+}
 
 int main(int argc, const char **argv) {
   /// check command-line argument
@@ -89,6 +99,7 @@ int main(int argc, const char **argv) {
     else alg = GetAlgName(alg_name);
   }
   else alg = GESPMM_ALG_DEFAULT;
+  auto transpose = CheckTranspose(alg_name);
 
   float *B_h = NULL, *C_h = NULL, *csr_values_h = NULL, *C_ref = NULL;
   float *B_d = NULL, *C_d = NULL, *csr_values_d = NULL;
@@ -227,13 +238,16 @@ int main(int argc, const char **argv) {
 
     CUDA_CHECK(cudaMemset(C_d, 0x0, sizeof(float) * M * N));
 
-    gespmmCsrSpMM(spmatA, B_d, N, C_d, true, alg);
+    gespmmCsrSpMM(spmatA, B_d, N, C_d, transpose, alg);
 
     cudaDeviceSynchronize();
     CUDA_CHECK(
         cudaMemcpy(C_h, C_d, sizeof(float) * M * N, cudaMemcpyDeviceToHost));
 
-    spmm_reference_host<int, float>(M, N, K, csr_indptr_buffer.data(),
+    if(transpose) spmm_reference_host<int, float>(M, N, K, csr_indptr_buffer.data(),
+                                    csr_indices_buffer.data(), csr_values_h,
+                                    B_h, C_ref);
+    else spmm_column_major_host<int, float>(M, N, K, csr_indptr_buffer.data(),
                                     csr_indices_buffer.data(), csr_values_h,
                                     B_h, C_ref);
 
@@ -250,7 +264,7 @@ int main(int argc, const char **argv) {
           gpu_timer.start();
         }
 
-        gespmmCsrSpMM(spmatA, B_d, N, C_d, true, alg);
+        gespmmCsrSpMM(spmatA, B_d, N, C_d, transpose, alg);
       }
       gpu_timer.stop();
 

@@ -83,6 +83,30 @@ void spmm_reference_host(
   }
 }
 
+template <typename Index, typename DType>
+void spmm_column_major_host(
+    int M, // number of A-rows
+    int N, // number of B_columns
+    int K, // number of A columns
+    const Index *csr_indptr, const int *csr_indices,
+    const DType *csr_values, // three arrays of A's CSR format
+    const DType *B,          // assume column-major
+    DType *C_ref)            // assume column-major
+{
+  fill_zero(C_ref, M * N);
+  for (int64_t i = 0; i < M; i++) {
+    Index begin = csr_indptr[i];
+    Index end = csr_indptr[i + 1];
+    for (Index p = begin; p < end; p++) {
+      int k = csr_indices[p];
+      DType val = csr_values[p];
+      for (int64_t j = 0; j < N; j++) {
+        C_ref[j * M + i] += val * B[j * K + k];
+      }
+    }
+  }
+}
+
 // Compute sddmm correct numbers. All arrays are host memory locations.
 template <typename Index, typename DType>
 void sddmm_reference_host(int M,   // number of S-rows, S is the sparse matrix
