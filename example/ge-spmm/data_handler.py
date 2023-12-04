@@ -42,8 +42,10 @@ class BalanceHandler:
     output_path = f"../benchmark/output/balance/sp{sparsity:.2f}/throughput.png"
     df = pd.read_csv(input_path, index_col=0)
     df.columns = df.columns.str.replace("std_", "")
+    new_idx = ["NNZBALANCE", "ROWBALANCE", "CUSPARSE"]
+    df.index = new_idx
     df = df.transpose()
-    draw_csv_bar(df, output_path, ylabel="Performance", xlabel="coefficient of variation",
+    draw_csv_bar(df, output_path, ylabel="Performance (gflops)", xlabel="Coefficient of Variation",
       margin=(0.85, 0.125, 0.125, 0.9))
 
 
@@ -83,8 +85,10 @@ class ReduceHandler:
     input_path = f"../benchmark/output/reduce/sp{sparsity:.2f}/throughput.csv"
     output_path = f"../benchmark/output/reduce/sp{sparsity:.2f}/throughput.png"
     df = pd.read_csv(input_path, index_col=0)
+    new_idx = ["SEQREDUCE", "PARREDUCE", "CUSPARSE"]
+    df.index = new_idx
     df = df.transpose()
-    draw_csv_bar(df, output_path, ylabel="Performance", xlabel="Workload", rot=30,
+    draw_csv_bar(df, output_path, ylabel="Performance (gflops)", xlabel="Workload", rot=30,
       margin=(0.85, 0.125, 0.125, 0.9))
 
 
@@ -121,8 +125,10 @@ class TransposeHandler:
     input_path = f"../benchmark/output/transpose/p2p-Gnutella31/throughput.csv"
     output_path = f"../benchmark/output/transpose/p2p-Gnutella31/throughput.png"
     df = pd.read_csv(input_path, index_col=0)
+    new_idx = ["Column-Major", "Row-Major", "CUSPARSE"]
+    df.index = new_idx
     df = df.transpose()
-    draw_csv_bar(df, output_path, ylabel="Performance", xlabel="Workload", rot=30,
+    draw_csv_bar(df, output_path, ylabel="Performance (gflops)", xlabel="Workload", rot=30,
       margin=(0.85, 0.125, 0.125, 0.9))
 
 
